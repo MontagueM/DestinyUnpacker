@@ -1,5 +1,3 @@
-import os
-#import pkg_db
 from dataclasses import fields
 import numpy as np
 from typing import List
@@ -47,30 +45,6 @@ def struct_as_hex(header):
             # print("Can't do array types yet")
             hex_fields[field.name] = ([])
     return hex_fields
-
-
-def compare_files_db(pkg_dir):
-    """
-    Comparing the actual binary file names and size versus our database for inconsistencies.
-    :return:
-    """
-    bin_files = {}
-    db_files = {}
-    bin_filenames = os.listdir(pkg_dir)
-    bin_sizes = [os.stat(pkg_dir + x).st_size for x in bin_filenames]
-    for i in range(len(bin_filenames)):
-        bin_files[bin_filenames[i][:-4]] = bin_sizes[i]
-    pkg_id = pkg_dir.split('/')[1][-4:]
-    db_entries = pkg_db.get_entries_from_table(pkg_id, column_select='FileName, FileSizeB')
-    for x in db_entries:
-        db_files[x[0]] = x[1]
-    print(db_files)
-    print(bin_files)
-    for i in bin_files.keys():
-        if bin_files[i] != db_files[i]:
-            print(f"File {i} is not the same. db size: {db_files[i]} | bin size: {bin_files[i]}")
-            return
-    print(f"all good for {pkg_dir}")
 
 
 def get_hex_data(direc):

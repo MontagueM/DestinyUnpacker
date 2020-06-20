@@ -290,10 +290,12 @@ class Package:
         self.package_header = None
         self.entry_table = None
         self.block_table = None
-        self.max_patch_id = self.package_directory[-5]
+        self.all_patch_ids = []
         self.max_pkg_hex = None
 
     def extract_package(self):
+        self.validate_all_patch_ids()
+
         print(f"Extracting files for {self.package_directory}")
 
         self.max_pkg_hex = gf.get_hex_data(self.package_directory)
@@ -306,6 +308,11 @@ class Package:
         pkg_db.drop_table(self.package_id)
         pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_id)
         pkg_db.add_block_entries(self.block_table.Entries, self.package_id)
+
+    def validate_all_patch_ids(self):
+        patch_ids = [x for x in os.listdir(self.package_directory.split('/')[0]) if self.package_id in x]
+        patch_ids.sort()
+        self.all_patch_ids = [int(x[-5]) for x in patch_ids]
 
     def get_header(self):
         """
@@ -431,7 +438,10 @@ class Package:
 
     def process_blocks(self):
         all_pkg_hex = []
-        for i in range(int(self.max_patch_id) + 1):
+        for i in range(int(self.all_patch_ids[-1]) + 1):
+            if i not in self.all_patch_ids:
+                print(f"Missing PatchID {i}")
+                quit()
             hex_data = gf.get_hex_data(f'{self.package_directory[:-6]}_{i}.pkg')
             all_pkg_hex.append(hex_data)
 
