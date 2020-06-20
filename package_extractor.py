@@ -59,43 +59,31 @@ def get_file_typename(file_type, file_subtype):
 
 # All of these decoding functions use the information from formats.c on how to decode each entry
 def decode_entry_a(entry_a_data):
-    bin_a = int(bin(entry_a_data), 2)
+    ref_id = entry_a_data & 0x1FFF
+    ref_pkg_id = (entry_a_data >> 13) & 0x1FF
+    ref_unk_id = (entry_a_data >> 22) & 0x3FFF
 
-    ref_id = bin_a & 0x1FFF
-    ref_pkg_id = (bin_a >> 13) & 0x1FF
-    ref_unk_id = (bin_a >> 22) & 0x3FFF
-    # print(f'RefID: {ref_id} RefPackageID: {ref_pkg_id} RefUnkID: {ref_unk_id}')
-    # print(f'RefID: {gf.fill_hex_with_zeros(hex(ref_id)[2:], 4)} RefPackageID: {gf.fill_hex_with_zeros(hex(ref_pkg_id)[2:], 4)}')
     return np.uint16(ref_id), np.uint16(ref_pkg_id), np.uint16(ref_unk_id)
 
 
 def decode_entry_b(entry_b_data):
-    bin_b = int(bin(entry_b_data), 2)
+    file_subtype = (entry_b_data >> 6) & 0x7
+    file_type = (entry_b_data >> 9) & 0x7F
 
-    file_subtype = (bin_b >> 6) & 0x7
-    file_type = (bin_b >> 9) & 0x7F
-    # print(f'Type: {file_type} SubType: {file_subtype}')
     return np.uint8(file_type), np.uint8(file_subtype)
 
 
 def decode_entry_c(entry_c_data):
-    bin_c = int(bin(entry_c_data), 2)
+    starting_block = entry_c_data & 0x3FFF
+    starting_block_offset = ((entry_c_data >> 14) & 0x3FFF) << 4
 
-    starting_block = bin_c & 0x3FFF
-    starting_block_offset = ((bin_c >> 14) & 0x3FFF) << 4
-
-    # print(f'StartingBlock: {starting_block} StartingBlockOffset: {starting_block_offset}')
-    # print(f'StartingBlock: {hex(starting_block)} StartingBlockOffset: {hex(starting_block_offset)}')
     return np.uint16(starting_block), np.uint32(starting_block_offset)
 
 
 def decode_entry_d(entry_c_data, entry_d_data):
-    bin_c = int(bin(entry_c_data), 2)
-    bin_d = int(bin(entry_d_data), 2)
+    file_size = (entry_d_data & 0x3FFFFFF) << 4 | (entry_c_data >> 28) & 0xF
+    unknown = (entry_d_data >> 26) & 0x3F
 
-    file_size = (bin_d & 0x3FFFFFF) << 4 | (bin_c >> 28) & 0xF
-    unknown = (bin_d >> 26) & 0x3F
-    # print(f'FileSize: {file_size} Unknown: {unknown}')
     return np.uint32(file_size), np.uint8(unknown)
 
 
@@ -284,32 +272,33 @@ class Package:
 
     def __init__(self, package_directory):
         self.package_directory = package_directory
-        # TODO Get max package here
-        ###########
         self.package_id = self.package_directory[-10:-6]
         self.package_header = None
         self.entry_table = None
         self.block_table = None
         self.all_patch_ids = []
         self.max_pkg_hex = None
+        self.nonce = None
 
     def extract_package(self):
-        self.validate_all_patch_ids()
+        self.get_all_patch_ids()
 
         print(f"Extracting files for {self.package_directory}")
+
+        pkg_db.start_db_connection()
+        pkg_db.drop_table(self.package_id)
 
         self.max_pkg_hex = gf.get_hex_data(self.package_directory)
         self.package_header = self.get_header()
         self.entry_table = self.get_entry_table()
         self.block_table = self.get_block_table()
-        self.process_blocks()
 
-        pkg_db.start_db_connection()
-        pkg_db.drop_table(self.package_id)
         pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_id)
         pkg_db.add_block_entries(self.block_table.Entries, self.package_id)
 
-    def validate_all_patch_ids(self):
+        self.process_blocks()
+
+    def get_all_patch_ids(self):
         patch_ids = [x for x in os.listdir(self.package_directory.split('/')[0]) if self.package_id in x]
         patch_ids.sort()
         self.all_patch_ids = [int(x[-5]) for x in patch_ids]
@@ -438,30 +427,28 @@ class Package:
 
     def process_blocks(self):
         all_pkg_hex = []
-        for i in range(int(self.all_patch_ids[-1]) + 1):
-            if i not in self.all_patch_ids:
-                print(f"Missing PatchID {i}")
-                quit()
+        for i in range(int(self.all_patch_ids[0]), int(self.all_patch_ids[-1]) + 1):
             hex_data = gf.get_hex_data(f'{self.package_directory[:-6]}_{i}.pkg')
             all_pkg_hex.append(hex_data)
 
         blocks_bin = []
-        for block in self.block_table.Entries:
-            current_pkg_data = all_pkg_hex[block.PatchID]
-            block_bin = binascii.unhexlify(current_pkg_data[block.Offset * 2:block.Offset * 2 + block.Size * 2])
-            # We only decrypt/decompress if need to
-            if block.Flags & 0x2:
-                block_bin = self.decrypt_block(block, block_bin)
-            if block.Flags & 0x1:
-                block_bin = self.decompress_block(block_bin)
-            blocks_bin.append(block_bin)
+        self.set_nonce()
 
-        self.output_files(blocks_bin)
+        self.output_files(blocks_bin, all_pkg_hex)
 
     def decrypt_block(self, block, block_hex):
         aes_key_0 = binascii.unhexlify(''.join([x[2:] for x in self.AES_KEY_0]))
         aes_key_1 = binascii.unhexlify(''.join([x[2:] for x in self.AES_KEY_1]))
 
+        if block.Flags & 0x4:
+            key = aes_key_1
+        else:
+            key = aes_key_0
+        cipher = AES.new(key, AES.MODE_GCM, nonce=self.nonce)
+        plaintext = cipher.decrypt(block_hex)
+        return plaintext
+
+    def set_nonce(self):
         nonce_seed = [
             0x84, 0xDF, 0x11, 0xC0,
             0xAC, 0xAB, 0xFA, 0x20,
@@ -470,21 +457,12 @@ class Package:
 
         nonce = nonce_seed
         package_id = int(f'0x{self.package_id}', 16)
+
         nonce[11] ^= package_id & 0xFF
         nonce[1] ^= 0x26
         nonce[0] ^= (package_id >> 8) & 0xFF
-        nonce = binascii.unhexlify(''.join([hex(x)[2:] for x in nonce]))
 
-        # gcm_tag = binascii.unhexlify(''.join([hex(x)[2:] for x in block_entry.GCMTag]))
-
-        if block.Flags & 0x4:
-            key = aes_key_1
-        else:
-            key = aes_key_0
-        cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
-        # plaintext = cipher.decrypt_and_verify(hex_data, gcm_tag)  # Verification always gives a MAC check fail for some reason
-        plaintext = cipher.decrypt(block_hex)
-        return plaintext
+        self.nonce = binascii.unhexlify(''.join([gf.fill_hex_with_zeros(hex(x)[2:], 2) for x in nonce]))
 
     def decompress_block(self, block_bin):
         decompressor = OodleDecompressor('oo2core_3_win64.dll')
@@ -492,7 +470,7 @@ class Package:
         # print("Decompressed block")
         return decompressed
 
-    def output_files(self, blocks_bin):
+    def output_files(self, blocks_bin, all_pkg_hex):
         try:
             os.mkdir('output/')
             os.mkdir('output/' + self.package_id)
@@ -503,21 +481,39 @@ class Package:
                 pass
 
         for entry in self.entry_table.Entries:
-            current_block = entry.StartingBlock
+            current_block_id = entry.StartingBlock
             block_offset = entry.StartingBlockOffset
             block_count = int(np.floor((block_offset + entry.FileSize - 1) / self.BLOCK_SIZE))
-            last_block = current_block + block_count
+            last_block_id = current_block_id + block_count
             file_buffer = b''  # string of length entry.Size
-            while current_block <= last_block:
-                if current_block == entry.StartingBlock:
-                    file_buffer = blocks_bin[current_block][block_offset:]
+            while current_block_id <= last_block_id:
+                current_block = self.block_table.Entries[current_block_id]
+                if current_block.PatchID not in self.all_patch_ids:
+                    print(f"Missing PatchID {current_block.PatchID}")
+                    quit()
+                current_pkg_data = all_pkg_hex[current_block.PatchID - self.all_patch_ids[0]]
+                current_block_bin = binascii.unhexlify(current_pkg_data[current_block.Offset * 2:current_block.Offset * 2 + current_block.Size * 2])
+                # We only decrypt/decompress if need to
+                if current_block.Flags & 0x2:
+                    current_block_bin = self.decrypt_block(current_block, current_block_bin)
+                if current_block.Flags & 0x1:
+                    # print(f'Decompressing block {current_block.ID}')
+                    current_block_bin = self.decompress_block(current_block_bin)
+                if current_block_id == entry.StartingBlock:
+                    file_buffer = current_block_bin[block_offset:]
                 else:
-                    file_buffer += blocks_bin[current_block]
-                current_block += 1
+                    file_buffer += current_block_bin
+                current_block_id += 1
             with open(f'output/{self.package_id}/{entry.FileName.upper()}.bin', 'wb') as f:
                 f.write(file_buffer[:entry.FileSize])
-            print(f"Wrote to {entry.FileName} successfully\n")
+            print(f"Wrote to {entry.FileName} successfully")
 
 
-pkg = Package("packages/w64_ui_01e3_6.pkg")
-pkg.extract_package()
+pkg1 = Package("packages/w64_ui_01e3_6.pkg")
+pkg1.extract_package()
+# pkg4 = Package("packages/w64_activities_01c1_6.pkg")
+# pkg4.extract_package()
+pkg2 = Package("packages/w64_activities_0199_6.pkg")
+pkg2.extract_package()
+pkg3 = Package("packages/w64_investment_globals_client_0912_3.pkg")
+pkg3.extract_package()

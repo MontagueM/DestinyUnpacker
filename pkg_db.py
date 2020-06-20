@@ -14,9 +14,9 @@ def start_db_connection():
 
 def drop_table(pkg_id_to_drop):
     global c
-    c.execute('DROP TABLE IF EXISTS A' + pkg_id_to_drop + '_DecodedData')
-    c.execute('DROP TABLE IF EXISTS A' + pkg_id_to_drop + '_DecodedData_FullData')
-    c.execute('DROP TABLE IF EXISTS A' + pkg_id_to_drop + '_BlockEntries')
+    c.execute('DROP TABLE IF EXISTS _' + pkg_id_to_drop + '_DecodedData')
+    c.execute('DROP TABLE IF EXISTS _' + pkg_id_to_drop + '_DecodedData_FullData')
+    c.execute('DROP TABLE IF EXISTS _' + pkg_id_to_drop + '_BlockEntries')
 
 
 def add_decoded_entries(decoded_entries, pkg_id):
@@ -63,9 +63,6 @@ def add_block_entries(block_entries, pkg_id):
 
 def get_entries_from_table(pkg_id, column_select='*'):
     global c
-    c.execute("SELECT " + column_select + " from A_" + pkg_id + "_DecodedData")
+    c.execute("SELECT " + column_select + " from _" + pkg_id + "_DecodedData")
     rows = c.fetchall()
-
-    # for row in rows:
-    #     print(row)
     return rows
