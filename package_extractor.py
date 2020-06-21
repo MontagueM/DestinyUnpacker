@@ -8,6 +8,7 @@ import os
 from ctypes import cdll, c_char_p, create_string_buffer
 from Crypto.Cipher import AES
 import binascii
+import text_decoding
 
 
 """
@@ -299,7 +300,7 @@ class Package:
         self.process_blocks()
 
     def get_all_patch_ids(self):
-        patch_ids = [x for x in os.listdir(self.package_directory.split('/')[0]) if self.package_id in x]
+        patch_ids = [x for x in os.listdir(self.package_directory.split('/w64')[0]) if self.package_id in x]
         patch_ids.sort()
         self.all_patch_ids = [int(x[-5]) for x in patch_ids]
 
@@ -431,10 +432,9 @@ class Package:
             hex_data = gf.get_hex_data(f'{self.package_directory[:-6]}_{i}.pkg')
             all_pkg_hex.append(hex_data)
 
-        blocks_bin = []
         self.set_nonce()
 
-        self.output_files(blocks_bin, all_pkg_hex)
+        self.output_files(all_pkg_hex)
 
     def decrypt_block(self, block, block_hex):
         aes_key_0 = binascii.unhexlify(''.join([x[2:] for x in self.AES_KEY_0]))
@@ -470,7 +470,7 @@ class Package:
         # print("Decompressed block")
         return decompressed
 
-    def output_files(self, blocks_bin, all_pkg_hex):
+    def output_files(self, all_pkg_hex):
         try:
             os.mkdir('output/')
             os.mkdir('output/' + self.package_id)
@@ -509,11 +509,36 @@ class Package:
             print(f"Wrote to {entry.FileName} successfully")
 
 
-pkg1 = Package("packages/w64_ui_01e3_6.pkg")
-pkg1.extract_package()
-# pkg4 = Package("packages/w64_activities_01c1_6.pkg")
+dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
+# pkg1 = Package(f"{dir}w64_ui_01e3_6.pkg")
+# pkg1.extract_package()
+# pkg2 = Package(f"{dir}w64_activities_0199_6.pkg")
+# pkg2.extract_package()
+# pkg3 = Package(f"{dir}w64_investment_globals_client_0912_3.pkg")
+# pkg3.extract_package()
+# pkg4 = Package(f"{dir}w64_activities_01c1_6.pkg")
 # pkg4.extract_package()
-pkg2 = Package("packages/w64_activities_0199_6.pkg")
-pkg2.extract_package()
-pkg3 = Package("packages/w64_investment_globals_client_0912_3.pkg")
-pkg3.extract_package()
+# pkg = Package(f'{dir}w64_investment_globals_client_0708_3.pkg')
+# pkg.extract_package()
+# pkg = Package(f'{dir}w64_investment_globals_client_059a_3.pkg') crashing
+# pkg.extract_package()
+# pkg = Package(f'{dir}w64_investment_globals_client_059b_3.pkg')
+# pkg.extract_package()
+# pkg = Package(f'{dir}w64_investment_globals_client_0599_3.pkg')
+# pkg.extract_package()
+
+pkg = Package(f'{dir}w64_investment_globals_client_0598_3.pkg')
+pkg.extract_package()
+text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+pkg = Package(f'{dir}w64_investment_globals_client_0597_3.pkg')
+pkg.extract_package()
+text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+pkg = Package(f'{dir}w64_investment_globals_client_0595_3.pkg')
+pkg.extract_package()
+text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+pkg = Package(f'{dir}w64_investment_globals_client_0596_3.pkg')
+pkg.extract_package()
+text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
