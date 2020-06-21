@@ -115,9 +115,8 @@ class OodleDecompressor:
         force_size = int('0x40000', 16)
         output = create_string_buffer(force_size)
         self.handle.OodleLZ_Decompress(
-            c_char_p(payload), force_size, output, force_size,
+            c_char_p(payload), len(payload), output, force_size,
             0, 0, 0, None, None, None, None, None, None, 3)
-
         return output.raw
 
 
@@ -273,7 +272,10 @@ class Package:
 
     def __init__(self, package_directory):
         self.package_directory = package_directory
-        self.package_id = self.package_directory[-10:-6]
+        if '_en_' in self.package_directory:
+            self.package_id = self.package_directory[-13:-9]
+        else:
+            self.package_id = self.package_directory[-10:-6]
         self.package_header = None
         self.entry_table = None
         self.block_table = None
@@ -429,6 +431,7 @@ class Package:
     def process_blocks(self):
         all_pkg_hex = []
         for i in range(int(self.all_patch_ids[0]), int(self.all_patch_ids[-1]) + 1):
+            print(i)
             hex_data = gf.get_hex_data(f'{self.package_directory[:-6]}_{i}.pkg')
             all_pkg_hex.append(hex_data)
 
@@ -446,6 +449,7 @@ class Package:
             key = aes_key_0
         cipher = AES.new(key, AES.MODE_GCM, nonce=self.nonce)
         plaintext = cipher.decrypt(block_hex)
+        # print('Decrypted')
         return plaintext
 
     def set_nonce(self):
@@ -480,7 +484,7 @@ class Package:
             except FileExistsError:
                 pass
 
-        for entry in self.entry_table.Entries:
+        for entry in self.entry_table.Entries[::-1]:
             current_block_id = entry.StartingBlock
             block_offset = entry.StartingBlockOffset
             block_count = int(np.floor((block_offset + entry.FileSize - 1) / self.BLOCK_SIZE))
@@ -495,6 +499,7 @@ class Package:
                 current_block_bin = binascii.unhexlify(current_pkg_data[current_block.Offset * 2:current_block.Offset * 2 + current_block.Size * 2])
                 # We only decrypt/decompress if need to
                 if current_block.Flags & 0x2:
+                    # print('Going to decrypt')
                     current_block_bin = self.decrypt_block(current_block, current_block_bin)
                 if current_block.Flags & 0x1:
                     # print(f'Decompressing block {current_block.ID}')
@@ -504,6 +509,8 @@ class Package:
                 else:
                     file_buffer += current_block_bin
                 current_block_id += 1
+            if entry.ID > 6000:
+                print('')
             with open(f'output/{self.package_id}/{entry.FileName.upper()}.bin', 'wb') as f:
                 f.write(file_buffer[:entry.FileSize])
             print(f"Wrote to {entry.FileName} successfully")
@@ -520,12 +527,15 @@ dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
 # pkg4.extract_package()
 # pkg = Package(f'{dir}w64_investment_globals_client_0708_3.pkg')
 # pkg.extract_package()
-# pkg = Package(f'{dir}w64_investment_globals_client_059a_3.pkg') crashing
-# pkg.extract_package()
 # pkg = Package(f'{dir}w64_investment_globals_client_059b_3.pkg')
 # pkg.extract_package()
 # pkg = Package(f'{dir}w64_investment_globals_client_0599_3.pkg')
 # pkg.extract_package()
+
+
+pkg = Package(f'{dir}w64_investment_globals_client_059a_3.pkg')
+pkg.extract_package()
+text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
 # pkg = Package(f'{dir}w64_investment_globals_client_0598_3.pkg')
 # pkg.extract_package()
@@ -583,6 +593,112 @@ dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
 # pkg.extract_package()  # crashing
 # text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-pkg = Package(f'{dir}w64_globals_03ab_7.pkg')
-pkg.extract_package()
-text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+# pkg = Package(f'{dir}w64_globals_03ab_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+##
+# pkg = Package(f'{dir}w64_globals_0238_6.pkg')
+# pkg.extract_package()  # crashing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_03d1_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_globals_03ed_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_globals_0211_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_globals_01fe_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_019a_6.pkg')
+# pkg.extract_package()  # crashing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_0377_en_2.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# eden activities
+
+# pkg = Package(f'{dir}w64_eden_activities_021b_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_eden_activities_0220_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_eden_activities_01ec_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_eden_activities_01e9_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_eden_activities_01eb_6.pkg')
+# pkg.extract_package()  # no 4?
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_eden_activities_01ab_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_activities_03f0_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_activities_03cf_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_activities_0230_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_activities_0236_6.pkg')
+# pkg.extract_package()  # crsahing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_activities_06d7_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_activities_0227_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_activities_022e_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_activities_0222_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_activities_0199_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_shared_manifest_0374_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_sandbox_020e_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_shared_manifest_068f_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_eden_06a1_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
