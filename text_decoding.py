@@ -1,95 +1,28 @@
 import pkg_db
 import os
+import binascii
+import general_functions as gf
 
 
 def convert_to_unicode(text):
-    replacements1 = {
-        '42': 'a',
-        '43': 'b',
-        '44': 'c',
-        '45': 'd',
-        '46': 'e',
-        '47': 'f',
-        '48': 'g',
-        '49': 'h',
-        '4A': 'i',
-        '4B': 'j',
-        '4C': 'k',
-        '4D': 'l',
-        '4E': 'm',
-        '4F': 'n',
-        '50': 'o',
-        '51': 'p',
-        '52': 'q',
-        '53': 'r',
-        '54': 's',
-        '55': 't',
-        '56': 'u',
-        '57': 'v',
-        '58': 'w',
-        '59': 'x',
-        '5A': 'y',
-        '5B': 'z',
-        '22': 'A',
-        '23': 'B',
-        '24': 'C',
-        '25': 'D',
-        '26': 'E',
-        '27': 'F',
-        '28': 'G',
-        '29': 'H',
-        '2A': 'I',
-        '2B': 'J',
-        '2C': 'K',
-        '2D': 'L',
-        '2E': 'M',
-        '2F': 'N',
-        '30': 'O',
-        '31': 'P',
-        '32': 'Q',
-        '33': 'R',
-        '34': 'S',
-        '35': 'T',
-        '36': 'U',
-        '37': 'V',
-        '38': 'W',
-        '39': 'X',
-        '3A': 'Y',
-        '3B': 'Z',
-        '01': ' ',
-        '0F': '.',
-        '08': "'",
-        '03': '"',
-        '1B': ':',
-        '0D': ',',
-        '0E': '-',
-        '20': '?',
-        '09': '(',
-        '0A': ')',
-        '02': '!',
-        '1C': ';',
-        '07': '&',
-        '11': '0',
-        '12': '1',
-        '13': '2',
-        '14': '3',
-        '15': '4',
-        '16': '5',
-        '17': '6',
-        '18': '7',
-        '19': '8',
-        '1A': '9',
-
-    }
-    replacements2 = {
-        'E1BFB5': '—',
+    replacements = {
+        'ÞÔ': '—',
         'E28087': '...',
-        '0E13SK0E1': '-'
+        '0E13SK0E1': '-',
+        'â»': 'ü'
     }
-    text = ''.join([replacements1.get(c, c) for c in text])
-    for x, y in replacements2.items():
-        text = text.replace(x, y)
-    return text
+    text = text.replace('00', '')  # Removing NUL
+    file_hex_split = [text[i:i+2] for i in range(0, len(text), 2)]
+    u = u''.join([binascii.unhexlify(x).decode('latin1') for x in file_hex_split])
+    # print(u)
+    for x, y in replacements.items():
+        u = u.replace(x, y)
+    # print(u)
+    return u
+
+
+def cipher(file_hex_split):
+    return [gf.fill_hex_with_zeros(hex(int(x, 16) + 0x1F)[2:], 2) for x in file_hex_split]
 
 
 def find_string(file_dir):
@@ -114,7 +47,9 @@ def find_string(file_dir):
         return ''
 
     string_data = [x for x in file_hex_split[starting_offset:end_offset] if x != '00']
-    return convert_to_unicode(string_data)
+    c = cipher(string_data)
+    u = convert_to_unicode(''.join(c))
+    return u
 
 
 def automatic_folder_converter(pkg_dir):
@@ -141,11 +76,20 @@ def automatic_folder_converter(pkg_dir):
         if entries[id] == '0x1A88':
             if entries[id+1] == '0x1A8A':
                 print(f'Writing {os.listdir(pkg_dir)[id+1]} data')
-                with open(pkg_dir + f'{pkg_dir[-5:-1]}_text.txt', 'a') as f:
+                with open(pkg_dir + f'{pkg_dir[-5:-1]}_text.txt', 'a', encoding='utf-8') as f:
                     f.write(os.listdir(pkg_dir)[id+1] + '\n')
                     to_write = find_string(pkg_dir + os.listdir(pkg_dir)[id+1]).replace('.', '.\n').replace('.\n"', '."')
+                    # print(to_write)
                     f.write(to_write)
                     f.write('\n\n')
 
 
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0966/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0599/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/059b/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0708/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0709/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0912/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0966/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0598/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0597/')
+automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/03ab/')

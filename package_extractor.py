@@ -527,18 +527,62 @@ dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
 # pkg = Package(f'{dir}w64_investment_globals_client_0599_3.pkg')
 # pkg.extract_package()
 
-pkg = Package(f'{dir}w64_investment_globals_client_0598_3.pkg')
-pkg.extract_package()
-text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+# pkg = Package(f'{dir}w64_investment_globals_client_0598_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_globals_client_0597_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_globals_client_0595_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_globals_client_0596_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-pkg = Package(f'{dir}w64_investment_globals_client_0597_3.pkg')
-pkg.extract_package()
-text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+# pkg = Package(f'{dir}w64_investment_globals_client_058f_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_globals_client_0591_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_globals_client_0592_3.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-pkg = Package(f'{dir}w64_investment_globals_client_0595_3.pkg')
-pkg.extract_package()
-text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+# pkg = Package(f'{dir}w64_investment_0361_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_01d3_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+#
+# pkg = Package(f'{dir}w64_investment_01ba_6.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-pkg = Package(f'{dir}w64_investment_globals_client_0596_3.pkg')
+# pkg = Package(f'{dir}w64_investment_0375_5.pkg')
+# pkg.extract_package()  # crashing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_01cf_7.pkg')
+# pkg.extract_package()  # crashing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_06dc_7.pkg')
+# pkg.extract_package()
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+# pkg = Package(f'{dir}w64_globals_03f5_7.pkg')
+# pkg.extract_package()  # crashing
+# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+
+pkg = Package(f'{dir}w64_globals_03ab_7.pkg')
 pkg.extract_package()
 text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
