@@ -52,7 +52,7 @@ def find_string(file_dir):
     return u
 
 
-def automatic_folder_converter(pkg_dir):
+def automatic_folder_converter_1a88(pkg_dir):
     """
     Converts .bin to text.
     TODO:
@@ -84,9 +84,37 @@ def automatic_folder_converter(pkg_dir):
                     f.write('\n\n')
 
 
+def automatic_folder_converter_all(pkg_dir):
+    """
+    Converts .bin to text.
+    TODO:
+    - take in pkg directory
+    - read from database
+    - if file entry BEFORE refID (in id?) == 0x1A88 and current refID == 0x1A8A
+        - find_string(file)
+    - append to a file called the pkg name or whatever
+    :return:
+    """
+    pkg_db.start_db_connection()
+    # Clearing file
+    with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'w', encoding='utf-8') as f:
+        f.write('')
+
+    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_dir[-5:-1], 'ID, RefID')}
+    print(entries)
+    for id, entry_name in enumerate(os.listdir(pkg_dir)):
+        if entries[id] == '0x1A8A':
+            print(f'Writing {os.listdir(pkg_dir)[id]} text strings')
+            with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'a', encoding='utf-8') as f:
+                f.write(os.listdir(pkg_dir)[id] + '\n')
+                to_write = find_string(pkg_dir + os.listdir(pkg_dir)[id]).replace('.', '.\n').replace('.\n"', '."')
+                f.write(to_write)
+                f.write('\n\n')
+
+
 def detect_text_strings(pkg_dir):
-    if 'globals' not in pkg_dir:
-        return
+    # if 'globals' not in pkg_dir:
+    #     return
     file_1a88_counter = 0
     print(pkg_dir)
     if '_en' in pkg_dir:
@@ -103,19 +131,14 @@ def detect_text_strings(pkg_dir):
                 file_1a88_counter += 1
     print(file_1a88_counter)
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0599/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/059a/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/059b/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0708/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0709/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0912/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0966/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0598/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0597/')
-# automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/03ab/')
 
 
 if __name__ == "__main__":
-    pkg_db.start_db_connection()
+    # pkg_db.start_db_connection()
+    # all_packages = os.listdir('output_all/')
+    # for pkg in all_packages:
+    #     detect_text_strings('output_all/' + pkg)
     all_packages = os.listdir('output_all/')
     for pkg in all_packages:
-        detect_text_strings('output_all/' + pkg)
+        if 'investment_globals_client_' in pkg:
+            automatic_folder_converter_all(f'D:/D2_Datamining/Package Unpacker/output_all/{pkg}/')

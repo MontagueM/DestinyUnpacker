@@ -2,7 +2,6 @@ from dataclasses import dataclass, fields, field
 import numpy as np
 from typing import List
 import pkg_db
-# TODO Deal with this later too
 import general_functions as gf
 import os
 from ctypes import cdll, c_char_p, create_string_buffer
@@ -553,4 +552,9 @@ def unpack_all(path):
         pkg.extract_package()
 
 
+def check_
+
+
 unpack_all('M:/D2_Datamining/d2packages_1901/')
+check if all the packages have the right number of files in them
+if not go back and do them
