@@ -285,7 +285,7 @@ class Package:
 
     def extract_package(self):
         self.get_all_patch_ids()
-
+        self.set_largest_patch_directory()
         print(f"Extracting files for {self.package_directory}")
 
         pkg_db.start_db_connection()
@@ -302,9 +302,16 @@ class Package:
         self.process_blocks()
 
     def get_all_patch_ids(self):
-        patch_ids = [x for x in os.listdir(self.package_directory.split('/w64')[0]) if self.package_id in x]
-        patch_ids.sort()
-        self.all_patch_ids = [int(x[-5]) for x in patch_ids]
+        all_pkgs = [x for x in os.listdir(self.package_directory.split('/w64')[0]) if self.package_id in x]
+        all_pkgs.sort()
+        self.all_patch_ids = [int(x[-5]) for x in all_pkgs]
+
+    def set_largest_patch_directory(self):
+        if '_bootflow_' in self.package_directory or '_startup_' in self.package_directory:
+            return
+        all_pkgs = [x for x in os.listdir(self.package_directory.split('/w64')[0]) if self.package_id in x]
+        sorted_all_pkgs, _ = zip(*sorted(zip(all_pkgs, [int(x[-5]) for x in all_pkgs])))
+        self.package_directory = self.package_directory.split('/w64')[0] + '/' + sorted_all_pkgs[-1]
 
     def get_header(self):
         """
@@ -430,7 +437,8 @@ class Package:
 
     def process_blocks(self):
         all_pkg_hex = []
-        for i in range(int(self.all_patch_ids[0]), int(self.all_patch_ids[-1]) + 1):
+        # We shouldn't do this
+        for i in self.all_patch_ids:
             print(i)
             hex_data = gf.get_hex_data(f'{self.package_directory[:-6]}_{i}.pkg')
             all_pkg_hex.append(hex_data)
@@ -460,7 +468,10 @@ class Package:
         ]
 
         nonce = nonce_seed
-        package_id = int(f'0x{self.package_id}', 16)
+        try:
+            package_id = int(f'0x{self.package_id}', 16)
+        except ValueError:
+            package_id = int(f'0x0000', 16)
 
         nonce[11] ^= package_id & 0xFF
         nonce[1] ^= 0x26
@@ -476,11 +487,11 @@ class Package:
 
     def output_files(self, all_pkg_hex):
         try:
-            os.mkdir('output/')
-            os.mkdir('output/' + self.package_id)
+            os.mkdir('output_all/')
+            os.mkdir('output_all/' + self.package_directory.split('/w64')[-1][1:-6])
         except FileExistsError:
             try:
-                os.mkdir('output/' + self.package_id)
+                os.mkdir('output_all/' + self.package_directory.split('/w64')[-1][1:-6])
             except FileExistsError:
                 pass
 
@@ -494,8 +505,8 @@ class Package:
                 current_block = self.block_table.Entries[current_block_id]
                 if current_block.PatchID not in self.all_patch_ids:
                     print(f"Missing PatchID {current_block.PatchID}")
-                    quit()
-                current_pkg_data = all_pkg_hex[current_block.PatchID - self.all_patch_ids[0]]
+                    return
+                current_pkg_data = all_pkg_hex[self.all_patch_ids.index(current_block.PatchID)]
                 current_block_bin = binascii.unhexlify(current_pkg_data[current_block.Offset * 2:current_block.Offset * 2 + current_block.Size * 2])
                 # We only decrypt/decompress if need to
                 if current_block.Flags & 0x2:
@@ -511,194 +522,35 @@ class Package:
                 current_block_id += 1
             if entry.ID > 6000:
                 print('')
-            with open(f'output/{self.package_id}/{entry.FileName.upper()}.bin', 'wb') as f:
+            with open(f'output_all/{self.package_directory.split("/w64")[-1][1:-6]}/{entry.FileName.upper()}.bin', 'wb') as f:
                 f.write(file_buffer[:entry.FileSize])
             print(f"Wrote to {entry.FileName} successfully")
 
 
-dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
-# pkg1 = Package(f"{dir}w64_ui_01e3_6.pkg")
-# pkg1.extract_package()
-# pkg2 = Package(f"{dir}w64_activities_0199_6.pkg")
-# pkg2.extract_package()
-# pkg3 = Package(f"{dir}w64_investment_globals_client_0912_3.pkg")
-# pkg3.extract_package()
-# pkg4 = Package(f"{dir}w64_activities_01c1_6.pkg")
-# pkg4.extract_package()
-# pkg = Package(f'{dir}w64_investment_globals_client_0708_3.pkg')
-# pkg.extract_package()
-# pkg = Package(f'{dir}w64_investment_globals_client_059b_3.pkg')
-# pkg.extract_package()
-# pkg = Package(f'{dir}w64_investment_globals_client_0599_3.pkg')
-# pkg.extract_package()
-
-
-pkg = Package(f'{dir}w64_investment_globals_client_059a_3.pkg')
-pkg.extract_package()
-text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_investment_globals_client_0598_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_globals_client_0597_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_globals_client_0595_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_globals_client_0596_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_investment_globals_client_058f_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_globals_client_0591_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_globals_client_0592_3.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_investment_0361_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_01d3_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_investment_01ba_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_investment_0375_5.pkg')
-# pkg.extract_package()  # crashing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_01cf_7.pkg')
-# pkg.extract_package()  # crashing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_06dc_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_03f5_7.pkg')
-# pkg.extract_package()  # crashing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_03ab_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-##
-# pkg = Package(f'{dir}w64_globals_0238_6.pkg')
-# pkg.extract_package()  # crashing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_03d1_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_globals_03ed_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_globals_0211_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_globals_01fe_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_019a_6.pkg')
-# pkg.extract_package()  # crashing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_globals_0377_en_2.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# eden activities
-
-# pkg = Package(f'{dir}w64_eden_activities_021b_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_eden_activities_0220_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_eden_activities_01ec_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_eden_activities_01e9_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+# dir = 'F:/Steam/steamapps/common/Destiny 2/packages/'
 
 # pkg = Package(f'{dir}w64_eden_activities_01eb_6.pkg')
 # pkg.extract_package()  # no 4?
 # text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-# pkg = Package(f'{dir}w64_eden_activities_01ab_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-# pkg = Package(f'{dir}w64_activities_03f0_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+def unpack_all(path):
+    #ADD A THING THAT IF FOLDER EXISTS DOES NOT UNPACK AGAIN
+    all_packages = os.listdir(path)
+    unpacked_packages = os.listdir('output_all/')
+    seen_pkgs = []
+    unpack_pkgs = []
+    for pkg in all_packages:
+        pkg_trimmed = pkg[:-5]
+        print(pkg[4:-6])
+        if pkg_trimmed not in seen_pkgs and pkg[4:-6] not in unpacked_packages:
+            seen_pkgs.append(pkg_trimmed)
+            unpack_pkgs.append(pkg)
+    print(unpack_pkgs)
+    for pkg in unpack_pkgs:
+        pkg = Package(f'{path}{pkg}')
+        print(pkg.package_directory)
+        pkg.extract_package()
 
-# pkg = Package(f'{dir}w64_activities_03cf_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_activities_0230_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
 
-# pkg = Package(f'{dir}w64_activities_0236_6.pkg')
-# pkg.extract_package()  # crsahing
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_activities_06d7_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_activities_0227_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_activities_022e_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_activities_0222_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_activities_0199_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_shared_manifest_0374_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_sandbox_020e_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-#
-# pkg = Package(f'{dir}w64_shared_manifest_068f_7.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
-
-# pkg = Package(f'{dir}w64_eden_06a1_6.pkg')
-# pkg.extract_package()
-# text_decoding.automatic_folder_converter(f'output/{pkg.package_id}/')
+unpack_all('M:/D2_Datamining/d2packages_1901/')

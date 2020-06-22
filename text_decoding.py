@@ -75,7 +75,7 @@ def automatic_folder_converter(pkg_dir):
             continue
         if entries[id] == '0x1A88':
             if entries[id+1] == '0x1A8A':
-                print(f'Writing {os.listdir(pkg_dir)[id+1]} data')
+                print(f'Writing {os.listdir(pkg_dir)[id+1]} text strings')
                 with open(pkg_dir + f'{pkg_dir[-5:-1]}_text.txt', 'a', encoding='utf-8') as f:
                     f.write(os.listdir(pkg_dir)[id+1] + '\n')
                     to_write = find_string(pkg_dir + os.listdir(pkg_dir)[id+1]).replace('.', '.\n').replace('.\n"', '."')
@@ -84,6 +84,24 @@ def automatic_folder_converter(pkg_dir):
                     f.write('\n\n')
 
 
+def detect_text_strings(pkg_dir):
+    if 'globals' not in pkg_dir:
+        return
+    file_1a88_counter = 0
+    print(pkg_dir)
+    if '_en' in pkg_dir:
+        package_id = pkg_dir[-7:-3]
+    else:
+        package_id = pkg_dir[-4:]
+    entries = {x: y for x, y in pkg_db.get_entries_from_table(package_id, 'ID, RefID')}
+    for id, entry_name in enumerate(os.listdir(pkg_dir)):
+        # print(entry_name)
+        if id >= len(os.listdir(pkg_dir))-2:
+            continue
+        if entries[id] == '0x1A88':
+            if entries[id+1] == '0x1A8A':
+                file_1a88_counter += 1
+    print(file_1a88_counter)
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0599/')
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/059a/')
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/059b/')
@@ -94,3 +112,10 @@ def automatic_folder_converter(pkg_dir):
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0598/')
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0597/')
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/03ab/')
+
+
+if __name__ == "__main__":
+    pkg_db.start_db_connection()
+    all_packages = os.listdir('output_all/')
+    for pkg in all_packages:
+        detect_text_strings('output_all/' + pkg)
