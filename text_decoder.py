@@ -6,6 +6,7 @@ import general_functions as gf
 import os
 import binascii
 from version import version_str
+import difflib
 
 
 def convert_to_unicode(text):
@@ -149,14 +150,11 @@ def file_to_text(file_path):
     return None
 
 
-# file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-0000191E.bin')
-# file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-00001FE7.bin')
-
 def automatic_folder_converter_all(pkg_dir, pkg_name):
     pkg_db.start_db_connection()
     with open(f'{version_str}/text_all/{pkg_name}_text.txt', 'w', encoding='utf-8') as f:
         f.write('')
-    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_dir, 'ID, RefID')}
+    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_name, 'ID, RefID')}
     print(entries)
     for id, entry_name in enumerate(os.listdir(pkg_dir)):
         if entries[id] == '0x1A8A':
@@ -170,8 +168,23 @@ def automatic_folder_converter_all(pkg_dir, pkg_name):
                 f.write('\n\n')
 
 
-all_packages = os.listdir(f'{version_str}/output_all/')
-for pkg in all_packages:
-    existing_text = os.listdir(f'{version_str}/text_all/')
-    if 'globals_' in pkg:
-        automatic_folder_converter_all(f'{version_str}/output_all/{pkg}/', pkg)
+def find_difference_in_text():
+    old_version_str = '2_9_0_1'
+    all_packages_old = os.listdir(f'{old_version_str}/text_all/')
+    all_packages_new = os.listdir(f'{version_str}/text_all/')
+    for file in all_packages_new:
+        if file in all_packages_old:
+            lines1 = open(f'{old_version_str}/text_all/{file}', encoding='utf8').readlines()
+            lines2 = open(f'{version_str}/text_all/{file}', encoding='utf8').readlines()
+            for line in difflib.unified_diff(lines1, lines2, fromfile='file1', tofile='file2', lineterm=''):
+                print(line)
+
+
+#  Converts all pkgs in output_all for this version to text
+# all_packages = os.listdir(f'{version_str}/output_all/')
+# for pkg in all_packages:
+#     existing_text = os.listdir(f'{version_str}/text_all/')
+#     if 'globals_' in pkg:
+#         automatic_folder_converter_all(f'{version_str}/output_all/{pkg}/', pkg)
+
+find_difference_in_text()

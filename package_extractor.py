@@ -297,10 +297,11 @@ class Package:
 
         pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
         pkg_db.add_block_entries(self.block_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
-        return  # uncomment this line if you just want to rename/move all the DB files
+        # return  # uncomment this line if you just want to rename/move all the DB files
         self.process_blocks()
 
     def get_all_patch_ids(self):
+        print(self.package_directory.split('/w64')[0])
         all_pkgs = [x for x in os.listdir(self.package_directory.split('/w64')[0]) if self.package_id in x]
         all_pkgs.sort()
         self.all_patch_ids = [int(x[-5]) for x in all_pkgs]
@@ -542,7 +543,7 @@ def unpack_all(path):
             unpack_pkgs.append(pkg)
     print(unpack_pkgs)
     for pkg in all_packages:
-        pkg = Package(f'{path}{pkg}')
+        pkg = Package(f'{path}/{pkg}')
         print(pkg.package_directory)
         pkg.extract_package()
 
