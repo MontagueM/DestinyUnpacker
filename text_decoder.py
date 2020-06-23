@@ -105,22 +105,23 @@ def get_cipher_table(string_header, file_hex):
     cipher_table_start = int('0x60', 16) + 16
     cipher_table_length = string_header.CipherTableSize * 32  # each cipher entry is 32 bytes long
     cipher_table_hex = file_hex[cipher_table_start*2:cipher_table_start*2 + cipher_table_length*2]
-    print(cipher_table_hex[:64])
-    for i in range(string_header.CipherTableSize):
-        cipher_entry = CipherEntry()
-        for f in fields(cipher_entry):
-            print(cipher_table_hex, f.name)
-            if f.type == np.uint32:
-                flipped = "".join(gf.get_flipped_hex(cipher_table_hex, 8))
-                value = np.uint32(int(flipped, 16))
-                setattr(cipher_entry, f.name, value)
-                cipher_table_hex = cipher_table_hex[8:]
-            elif f.type == np.uint16:
-                flipped = "".join(gf.get_flipped_hex(cipher_table_hex, 4))
-                value = np.uint16(int(flipped, 16))
-                setattr(cipher_entry, f.name, value)
-                cipher_table_hex = cipher_table_hex[4:]
-        cipher_table.Entries.append(cipher_entry)
+    try:
+        for i in range(string_header.CipherTableSize):
+            cipher_entry = CipherEntry()
+            for f in fields(cipher_entry):
+                if f.type == np.uint32:
+                    flipped = "".join(gf.get_flipped_hex(cipher_table_hex, 8))
+                    value = np.uint32(int(flipped, 16))
+                    setattr(cipher_entry, f.name, value)
+                    cipher_table_hex = cipher_table_hex[8:]
+                elif f.type == np.uint16:
+                    flipped = "".join(gf.get_flipped_hex(cipher_table_hex, 4))
+                    value = np.uint16(int(flipped, 16))
+                    setattr(cipher_entry, f.name, value)
+                    cipher_table_hex = cipher_table_hex[4:]
+            cipher_table.Entries.append(cipher_entry)
+    except ValueError:
+        return None  # We're just assuming the file is bogus
     return cipher_table
 
 
@@ -129,27 +130,44 @@ def file_to_text(file_path):
     string_header = get_header(file_hex)
     if string_header:
         cipher_table = get_cipher_table(string_header, file_hex)
-        print(cipher_table.Entries)
+        if cipher_table is None:
+            return None
         string = ''
         file_offset = 0
         for entry in cipher_table.Entries:
             entry_hex = file_hex[string_header.Offset*2 + file_offset*2: string_header.Offset*2 + file_offset*2 + entry.Length*2]
-            print(f'Using key {entry.Key} for offset range {hex(file_offset)} to {hex(file_offset + entry.Length)}')
+            # print(f'Using key {entry.Key} for offset range {hex(file_offset)} to {hex(file_offset + entry.Length)}')
             file_offset += entry.Length
             c = cipher([entry_hex[i:i+2] for i in range(0, len(entry_hex), 2)], entry.Key)
             string += convert_to_unicode(''.join(c))
             string += '\n'
-        print(string)
-        # string_hex = file_hex[header.Offset*2:header.Offset*2 + header.Length*2]
-        # print(string_hex)
-
-        # print(u)
+        return string
+    return None
 
 
-file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-0000191E.bin')
+# file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-0000191E.bin')
 # file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-00001FE7.bin')
 
-# string_hex = '03 2A 01 4B 56 54 55 01 4D 4A 4C 46 01 55 49 46 01 4F 42 4E 46 0F 01 25 50 46 54 4F 08 55 01 4E 46 42 4F 01 42 4F 5A 55 49 4A 4F 48 0F 03 01 E1 BF B5 2D 50 53 45 01 27 46 4D 58 4A 4F 55 46 53 01 55 50 01 2D 50 53 45 01 35 4A 4E 56 53 27 46 4D 58 4A 4F 55 46 53 08 54 01 2D'
-# c = cipher(string_hex.split(' '))
-# u = convert_to_unicode(''.join(c))
-# print(u)
+def automatic_folder_converter_all(pkg_dir):
+    pkg_db.start_db_connection()
+    with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'w', encoding='utf-8') as f:
+        f.write('')
+
+    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_dir[-5:-1], 'ID, RefID')}
+    print(entries)
+    for id, entry_name in enumerate(os.listdir(pkg_dir)):
+        if entries[id] == '0x1A8A':
+            print(f'Writing {os.listdir(pkg_dir)[id]} text strings')
+            with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'a', encoding='utf-8') as f:
+                f.write(os.listdir(pkg_dir)[id] + '\n')
+                to_write = file_to_text(pkg_dir + os.listdir(pkg_dir)[id])
+                if to_write is None:
+                    continue
+                f.write(to_write)
+                f.write('\n\n')
+
+
+all_packages = os.listdir('output_all/')
+for pkg in all_packages:
+    if 'investment_globals_client_' in pkg:
+        automatic_folder_converter_all(f'D:/D2_Datamining/Package Unpacker/output_all/{pkg}/')
