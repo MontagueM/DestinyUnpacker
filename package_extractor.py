@@ -8,7 +8,7 @@ from ctypes import cdll, c_char_p, create_string_buffer
 from Crypto.Cipher import AES
 import binascii
 import text_decoding
-
+from version import version_str
 
 """
 Main program with every other file concatenated into a single file
@@ -288,16 +288,16 @@ class Package:
         print(f"Extracting files for {self.package_directory}")
 
         pkg_db.start_db_connection()
-        pkg_db.drop_table(self.package_id)
+        pkg_db.drop_table(self.package_directory.split("/w64")[-1][1:-6])
 
         self.max_pkg_hex = gf.get_hex_data(self.package_directory)
         self.package_header = self.get_header()
         self.entry_table = self.get_entry_table()
         self.block_table = self.get_block_table()
 
-        pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_id)
-        pkg_db.add_block_entries(self.block_table.Entries, self.package_id)
-
+        pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
+        pkg_db.add_block_entries(self.block_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
+        return  # uncomment this line if you just want to rename/move all the DB files
         self.process_blocks()
 
     def get_all_patch_ids(self):
@@ -486,13 +486,9 @@ class Package:
 
     def output_files(self, all_pkg_hex):
         try:
-            os.mkdir('output_all/')
-            os.mkdir('output_all/' + self.package_directory.split('/w64')[-1][1:-6])
+            os.mkdir(f'{version_str}/output_all/' + self.package_directory.split('/w64')[-1][1:-6])
         except FileExistsError:
-            try:
-                os.mkdir('output_all/' + self.package_directory.split('/w64')[-1][1:-6])
-            except FileExistsError:
-                pass
+            pass
 
         for entry in self.entry_table.Entries[::-1]:
             current_block_id = entry.StartingBlock
@@ -521,7 +517,7 @@ class Package:
                 current_block_id += 1
             if entry.ID > 6000:
                 print('')
-            with open(f'output_all/{self.package_directory.split("/w64")[-1][1:-6]}/{entry.FileName.upper()}.bin', 'wb') as f:
+            with open(f'{version_str}/output_all/{self.package_directory.split("/w64")[-1][1:-6]}/{entry.FileName.upper()}.bin', 'wb') as f:
                 f.write(file_buffer[:entry.FileSize])
             print(f"Wrote to {entry.FileName} successfully")
 
@@ -534,9 +530,8 @@ class Package:
 
 
 def unpack_all(path):
-    #ADD A THING THAT IF FOLDER EXISTS DOES NOT UNPACK AGAIN
     all_packages = os.listdir(path)
-    unpacked_packages = os.listdir('output_all/')
+    unpacked_packages = os.listdir(f'{version_str}/output_all/')
     seen_pkgs = []
     unpack_pkgs = []
     for pkg in all_packages:
@@ -546,15 +541,32 @@ def unpack_all(path):
             seen_pkgs.append(pkg_trimmed)
             unpack_pkgs.append(pkg)
     print(unpack_pkgs)
-    for pkg in unpack_pkgs:
+    for pkg in all_packages:
         pkg = Package(f'{path}{pkg}')
         print(pkg.package_directory)
         pkg.extract_package()
 
 
-def check_
+def check_all_files_exist():
+    pkg_db.start_db_connection()
+    all_packages = os.listdir(f'{version_str}/output_all/')
+    for pkg in all_packages:
+        entries = pkg_db.get_entries_from_table(pkg, 'ID')
+        if len(entries) != len(os.listdir(f'{version_str}/output_all/' + pkg)):
+            print(f'{package_id} not same {len(entries)} vs {len(os.listdir(f"{version_str}/output_all/" + pkg))}')
+            continue
+            pkg = Package(f'M:/D2_Datamining/d2packages/{version_str}/w64_{pkg}_0.pkg')
+            pkg.extract_package()
 
 
-unpack_all('M:/D2_Datamining/d2packages_1901/')
-check if all the packages have the right number of files in them
-if not go back and do them
+print(f"Working on version {version_str}")
+try:
+    os.mkdir(f'{version_str}/')
+    os.mkdir(f'{version_str}/output_all/')
+except FileExistsError:
+    try:
+        os.mkdir(f'{version_str}/output_all/')
+    except FileExistsError:
+        pass
+unpack_all(f'M:/D2_Datamining/d2packages/{version_str}')
+# check_all_files_exist()

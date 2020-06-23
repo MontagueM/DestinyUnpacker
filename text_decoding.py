@@ -115,7 +115,7 @@ def automatic_folder_converter_all(pkg_dir):
 def detect_text_strings(pkg_dir):
     # if 'globals' not in pkg_dir:
     #     return
-    file_1a88_counter = 0
+    file_1a8a_counter = 0
     print(pkg_dir)
     if '_en' in pkg_dir:
         package_id = pkg_dir[-7:-3]
@@ -124,21 +124,18 @@ def detect_text_strings(pkg_dir):
     entries = {x: y for x, y in pkg_db.get_entries_from_table(package_id, 'ID, RefID')}
     for id, entry_name in enumerate(os.listdir(pkg_dir)):
         # print(entry_name)
-        if id >= len(os.listdir(pkg_dir))-2:
-            continue
-        if entries[id] == '0x1A88':
-            if entries[id+1] == '0x1A8A':
-                file_1a88_counter += 1
-    print(file_1a88_counter)
+        if entries[id] == '0x1A8A':
+            file_1a8a_counter += 1
+    print(file_1a8a_counter)
 # automatic_folder_converter('D:/D2_Datamining/Package Unpacker/output/0599/')
 
 
 if __name__ == "__main__":
-    # pkg_db.start_db_connection()
-    # all_packages = os.listdir('output_all/')
-    # for pkg in all_packages:
-    #     detect_text_strings('output_all/' + pkg)
+    pkg_db.start_db_connection()
     all_packages = os.listdir('output_all/')
     for pkg in all_packages:
-        if 'investment_globals_client_' in pkg:
-            automatic_folder_converter_all(f'D:/D2_Datamining/Package Unpacker/output_all/{pkg}/')
+        detect_text_strings('output_all/' + pkg)
+    # all_packages = os.listdir('output_all/')
+    # for pkg in all_packages:
+    #     if 'investment_globals_client_' in pkg:
+    #         automatic_folder_converter_all(f'D:/D2_Datamining/Package Unpacker/output_all/{pkg}/')

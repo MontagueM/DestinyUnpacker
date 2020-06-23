@@ -5,14 +5,18 @@ import pkg_db
 import general_functions as gf
 import os
 import binascii
+from version import version_str
 
 
 def convert_to_unicode(text):
     replacements = {
         'ÞÔ': '—',
+        'E28087': '...',
         '0E13SK0E1': '-',
         'â»': 'ü',
         'ë¦': '...',
+        '¦': '...',
+        '¦': '...',
     }
     text = text.replace('00', '')  # Removing NUL
     file_hex_split = [text[i:i+2] for i in range(0, len(text), 2)]
@@ -148,17 +152,16 @@ def file_to_text(file_path):
 # file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-0000191E.bin')
 # file_to_text('D:/D2_Datamining/Package Unpacker/output/0912/0912-00001FE7.bin')
 
-def automatic_folder_converter_all(pkg_dir):
+def automatic_folder_converter_all(pkg_dir, pkg_name):
     pkg_db.start_db_connection()
-    with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'w', encoding='utf-8') as f:
+    with open(f'{version_str}/text_all/{pkg_name}_text.txt', 'w', encoding='utf-8') as f:
         f.write('')
-
-    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_dir[-5:-1], 'ID, RefID')}
+    entries = {x: y for x, y in pkg_db.get_entries_from_table(pkg_dir, 'ID, RefID')}
     print(entries)
     for id, entry_name in enumerate(os.listdir(pkg_dir)):
         if entries[id] == '0x1A8A':
             print(f'Writing {os.listdir(pkg_dir)[id]} text strings')
-            with open(f'text_all/{pkg_dir[-5:-1]}_text.txt', 'a', encoding='utf-8') as f:
+            with open(f'{version_str}/text_all/{pkg_name}_text.txt', 'a', encoding='utf-8') as f:
                 f.write(os.listdir(pkg_dir)[id] + '\n')
                 to_write = file_to_text(pkg_dir + os.listdir(pkg_dir)[id])
                 if to_write is None:
@@ -167,7 +170,8 @@ def automatic_folder_converter_all(pkg_dir):
                 f.write('\n\n')
 
 
-all_packages = os.listdir('output_all/')
+all_packages = os.listdir(f'{version_str}/output_all/')
 for pkg in all_packages:
-    if 'investment_globals_client_' in pkg:
-        automatic_folder_converter_all(f'D:/D2_Datamining/Package Unpacker/output_all/{pkg}/')
+    existing_text = os.listdir(f'{version_str}/text_all/')
+    if 'globals_' in pkg:
+        automatic_folder_converter_all(f'{version_str}/output_all/{pkg}/', pkg)
