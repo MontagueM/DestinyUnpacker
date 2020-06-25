@@ -57,11 +57,23 @@ def get_file_typename(file_type, file_subtype):
         return 'Unknown'
 
 
+def calculate_pkg_id(entry_a_data):
+    ref_pkg_id = (entry_a_data >> 13) & 0x3FF
+    ref_unk_id = entry_a_data >> 23
+
+    ref_digits = ref_unk_id & 0x3
+    if ref_digits == 1:
+        return ref_pkg_id
+    else:
+        return ref_pkg_id | 0x100 << ref_digits
+
+
 # All of these decoding functions use the information from formats.c on how to decode each entry
 def decode_entry_a(entry_a_data):
     ref_id = entry_a_data & 0x1FFF
-    ref_pkg_id = (entry_a_data >> 13) & 0x1FF
-    ref_unk_id = (entry_a_data >> 22) & 0x3FFF
+    # ref_pkg_id = (entry_a_data >> 13) & 0x3FF
+    ref_pkg_id = calculate_pkg_id(entry_a_data)
+    ref_unk_id = (entry_a_data >> 23) & 0x1FF
 
     return np.uint16(ref_id), np.uint16(ref_pkg_id), np.uint16(ref_unk_id)
 
@@ -217,6 +229,26 @@ class SPkgEntry:
     EntryC: np.uint32 = np.uint32(0)
     EntryD: np.uint32 = np.uint32(0)
 
+    '''
+     [             EntryD              ] [             EntryC              ] 
+     GGGGGGFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFEEEE EEEEEEEE EEDDDDDD DDDDDDDD
+
+     [             EntryB              ] [             EntryA              ]
+     00000000 00000000 TTTTTTTS SS000000 CCCCCCCC CBBBBBBB BBBAAAAA AAAAAAAA
+
+     A:RefID: EntryA & 0x1FFF
+     B:RefPackageID: (EntryA >> 13) & 0x3FF
+     C:RefUnkID: (EntryA >> 23) & 0x1FF
+     D:StartingBlock: EntryC & 0x3FFF
+     E:StartingBlockOffset: ((EntryC >> 14) & 0x3FFF) << 4
+     F:FileSize: (EntryD & 0x3FFFFFF) << 4 | (EntryC >> 28) & 0xF
+     G:Unknown: (EntryD >> 26) & 0x3F
+
+     Flags (Entry B)
+     S:SubType: (EntryB >> 6) & 0x7
+     T:Type:  (EntryB >> 9) & 0x7F
+    '''
+
 
 @dataclass
 class SPkgEntryDecoded:
@@ -297,7 +329,7 @@ class Package:
 
         pkg_db.add_decoded_entries(self.entry_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
         pkg_db.add_block_entries(self.block_table.Entries, self.package_directory.split("/w64")[-1][1:-6])
-        # return  # uncomment this line if you just want to rename/move all the DB files
+        return  # uncomment this line if you just want to update all the DB files
         self.process_blocks()
 
     def get_all_patch_ids(self):
