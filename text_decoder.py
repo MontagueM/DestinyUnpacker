@@ -180,11 +180,12 @@ def find_difference_in_text():
                 print(line)
 
 
-#  Converts all pkgs in output_all for this version to text
-# all_packages = os.listdir(f'{version_str}/output_all/')
-# for pkg in all_packages:
-#     existing_text = os.listdir(f'{version_str}/text_all/')
-#     if 'globals_' in pkg:
-#         automatic_folder_converter_all(f'{version_str}/output_all/{pkg}/', pkg)
+def get_text_in_pkgs():
+    # Converts all pkgs in output_all for this version to text
+    all_packages = os.listdir(f'{version_str}/output_all/')
+    for pkg in all_packages:
+        if 'globals_' in pkg:
+            automatic_folder_converter_all(f'{version_str}/output_all/{pkg}/', pkg)
+
 
 find_difference_in_text()

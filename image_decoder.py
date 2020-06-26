@@ -105,34 +105,61 @@ def get_images_from_pkg(pkg_path):
             except FileExistsError:
                 pass
         header = get_header(header_hex)
-        if header.Identifier != 288:
-            continue
         print(f'Getting image data for file {this_entry[0]}')
         dimensions = [int(header.Width), int(header.Height)]
         # print(dimensions)
         # print(f'{len(data_hex)}, need {int(dimensions[0]) * int(dimensions[1]) * 2 * 4}')  # 4 is RGBA
-        img = Image.frombytes('RGBA', dimensions, bytes.fromhex(data_hex))
+        if header.Identifier == 288:
+            img = Image.frombytes('RGBA', dimensions, bytes.fromhex(data_hex))
+        elif header.Identifier == 264:
+            print(f'{len(data_hex)}, need {int(dimensions[0]) * int(dimensions[1]) * 2}')
+            data_hex_split = [data_hex[i:i+2] for i in range(0, len(data_hex), 2)]
+            for i in range(len(data_hex_split)):
+                if data_hex_split[i] != "FF":
+                    data_hex_split[i] = "00"
+            data = ''.join(data_hex_split)
+            img = Image.frombytes('L', dimensions, bytes.fromhex(data))
+        elif header.Identifier == 260:  # moon/planet surfaces?  # eg 01a3-301
+            print(f'Invalid identifier {header.Identifier}')
+            continue # Don't know what to do to fix it
+            print(f'{len(data_hex)}, need {int(dimensions[0]) * int(dimensions[1]) * 2 * 4}')  # 4 is RGBA
+
+            img = Image.frombytes('RGBA', dimensions, bytes.fromhex(data_hex))
+        else:
+            print(f'Invalid identifier {header.Identifier}')
+            continue
         img.save(f'{version_str}/images_all/{file_pkg}/{file_name}.png')
 
 
-def find_images_in_pkgs():
-    pkg_db.start_db_connection()
+def get_images_in_pkgs():
     for pkg in os.listdir(f'{version_str}/output_all/'):
-        counter = 0
-        entries = pkg_db.get_entries_from_table(pkg, 'FileType')
-        for entry in entries:
-            if entry[0] == 'Texture Header':
-                counter += 1
-        print(f'{counter} image headers in {pkg}')
-        # return
-        if counter > 100:
+        if 'investment_globals' in pkg or 'ui' in pkg:
             get_images_from_pkg(f'{version_str}/output_all/{pkg}/')
 
 
+def compare_images():
+    import imagehash
+    cutoff = 5
+    old_version_str = '2_9_0_1'
+    old_images_dir = f'{old_version_str}/images_all/'
+    new_images_dir = f'{version_str}/images_all/'
+
+    for folder in os.listdir(new_images_dir):
+        for img in os.listdir(new_images_dir + folder):
+            original = Image.open(new_images_dir + folder + '/' + img)
+            hash0 = imagehash.average_hash(original)
+            diff = Image.open(old_images_dir + folder + '/' + img)
+            hash1 = imagehash.average_hash(diff)
+            if hash0 - hash1 < cutoff:
+                # print(f'{img} images are similar')
+                pass
+            else:
+                print(f'{img} images are not similar')
+        print(list(set(os.listdir(new_images_dir + folder)) - set(os.listdir(old_images_dir + folder))))
 
 # get_image_from_file('2_9_0_1/output_all/ui_01a3/01A3-000009D6.bin')
-get_images_from_pkg(f'{version_str}/output_all/ui_bootflow_unp1/')
-# find_images_in_pkgs()
+# get_images_from_pkg(f'{version_str}/output_all/ui_01a3/')
+# get_images_in_pkgs()
+compare_images()
 
-
-#  fix issues with some images needing try except
+ # fix issues with some images needing try except
