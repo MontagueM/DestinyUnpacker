@@ -7,7 +7,7 @@ from ctypes import cdll, c_char_p, create_string_buffer
 from Crypto.Cipher import AES
 import binascii
 import io
-
+import multiprocessing as mp
 
 def get_file_typename(file_type, file_subtype, ref_id, ref_pkg):
     if file_type == 8:
@@ -358,7 +358,7 @@ class Package:
         self.nonce = binascii.unhexlify(''.join([gf.fill_hex_with_zeros(hex(x)[2:], 2) for x in nonce]))
 
     def decompress_block(self, block_bin):
-        decompressor = OodleDecompressor('I:/oo2core_8_win64.dll')
+        decompressor = OodleDecompressor('C:/Users/morse/Desktop/d_tex/oo2core_8_win64.dll')
         decompressed = decompressor.decompress(block_bin)
         return decompressed
 
@@ -406,16 +406,30 @@ class Package:
             # print(f"Wrote to {entry.FileName} successfully")
 
 
-def unpack_all(path, custom_direc):
+def unpack_all(path, custom_direc, t_pool):
     all_packages = os.listdir(path)[::-1]
     single_pkgs = dict()
     for pkg in all_packages:
         single_pkgs[pkg[:-6]] = pkg
-    for pkg, pkg_full in single_pkgs.items():
-        pkg = Package(f'{path}/{pkg_full}')
-        pkg.extract_package(extract=True, custom_direc=custom_direc)
+    # bc of how starmap works, we have to construct arguments outside
+    # of a loop. starmap then iterates thru _args, applying unpack_pkg
+    # to each element of _args across the thread pool. :)
+    _args = [(path, pkg_f, custom_direc) for pkg_f in single_pkgs.values()]
+    t_pool.starmap(
+        unpack_pkg, 
+        _args)
 
+def unpack_pkg(path, pkg_full, custom_direc):
+    pkg = Package(f'{path}/{pkg_full}')
+    pkg.extract_package(extract=True, custom_direc=custom_direc)
 
 if __name__ == '__main__':
+    # on a 6c/12t system, takes 57min to run.
+    # definitely room for optimization beyond multithread/parallel (cython maybe?)
+    t_pool = mp.Pool(mp.cpu_count()) # pool will automatically take all threads. adjust accordingly.
     version = '3_0_0_4'
-    unpack_all('I:/SteamLibrary/steamapps/common/Destiny 2/packages/', custom_direc=f'I:/d2_output_{version}/')
+    my_d2_pkg_loc = 'C:/Steam/steamapps/common/Destiny 2/ packages' # change me!
+    my_bin_out_loc = 'C:/Users/morse/Desktop/d_tex/d2_output_'      # and me!
+    unpack_all(my_d2_pkg_loc, f'{my_bin_out_loc + version}/', t_pool)
+    # 1st param is location of your D2 steam install packages folder. 2nd param is where you want unpacked binaries to go.
+    t_pool.close()
