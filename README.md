@@ -11,4 +11,4 @@ A multithreaded version is available in the multithreaded branch.
 
 ## Licensing
 
-This work is covered under GPLv3, although if this work is used please provide a credit to myself or this page.
+This work is covered under GPLv3, although if derivative work is published or this work is used in another tool please provide a credit to myself or this page.
