@@ -8,3 +8,7 @@ I recommend rewriting the unpacker in your own language to learn how it all work
 ## Multithreaded
 
 A multithreaded version is available in the multithreaded branch.
+
+## Licensing
+
+This work is covered under GPLv3, although if this work is used please provide a credit to myself or this page.
