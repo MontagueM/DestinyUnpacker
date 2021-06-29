@@ -8,7 +8,6 @@ from Crypto.Cipher import AES
 import binascii
 import io
 import fnmatch
-import re
 
 path = "C:/Steam SSD Games/steamapps/common/Destiny 2/packages/" #Path to your packages folder.
 custom_direc = "D:/Datamining/d2_output_3_2_0_1/" #Where you want the bin files to go
