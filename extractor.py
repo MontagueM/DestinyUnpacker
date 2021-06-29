@@ -7,6 +7,18 @@ from ctypes import cdll, c_char_p, create_string_buffer
 from Crypto.Cipher import AES
 import binascii
 import io
+import fnmatch
+import re
+
+path = "C:/Steam SSD Games/steamapps/common/Destiny 2/packages/" #Path to your packages folder.
+custom_direc = "D:/Datamining/d2_output_3_2_0_1/" #Where you want the bin files to go
+oodlepath = "C:/Steam SSD Games/steamapps/common/Destiny 2/bin/x64/oo2core_8_win64.dll" #Path to Oodle DLL in Destiny 2/bin/x64.
+
+filelist = []
+for file in os.listdir(path)[::-1]:
+    if fnmatch.fnmatch(file,'w64_investment_globals_*'):       #Customize this to what pkgs you need from. Can wildcard with * for all packages, or all of a certain type.
+        filelist.append(file)
+        #print(file) #for debugging
 
 
 def get_file_typename(file_type, file_subtype, ref_id, ref_pkg):
@@ -358,7 +370,7 @@ class Package:
         self.nonce = binascii.unhexlify(''.join([gf.fill_hex_with_zeros(hex(x)[2:], 2) for x in nonce]))
 
     def decompress_block(self, block_bin):
-        decompressor = OodleDecompressor('I:/oo2core_8_win64.dll')
+        decompressor = OodleDecompressor(oodlepath)
         decompressed = decompressor.decompress(block_bin)
         return decompressed
 
@@ -407,7 +419,7 @@ class Package:
 
 
 def unpack_all(path, custom_direc):
-    all_packages = os.listdir(path)[::-1]
+    all_packages = filelist
     single_pkgs = dict()
     for pkg in all_packages:
         single_pkgs[pkg[:-6]] = pkg
@@ -417,5 +429,4 @@ def unpack_all(path, custom_direc):
 
 
 if __name__ == '__main__':
-    version = '3_0_0_4'
-    unpack_all('I:/SteamLibrary/steamapps/common/Destiny 2/packages/', custom_direc=f'I:/d2_output_{version}/')
+    unpack_all(path, custom_direc)
